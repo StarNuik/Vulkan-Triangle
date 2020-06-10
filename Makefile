@@ -8,7 +8,7 @@ INC += -I include/ -I external/glm/
 # INC += $(addprefix -I ,$(wildcard includes/**))
 
 #? Additional settings
-FLG += -std=c++11 -g -O2 -m64
+FLG += -std=c++17 -g -O2 -m64
 # ERR += -Wall -Wextra -Werror
 
 LIB += -lm

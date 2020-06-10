@@ -1,4 +1,5 @@
 #include "System.hpp"
+#include <vulkan/vulkan.h>
 
 namespace Settings
 {
@@ -7,7 +8,11 @@ namespace Settings
 	const std::string windowTitle = "Hello Triangle!";
 
 	const std::vector<const char*> validationLayers = {
-		"VK_LAYER_KHRONOS_validation"
+		"VK_LAYER_KHRONOS_validation",
+	};
+
+	const std::vector<const char*> deviceExtensions = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	};
 
 	#if DEBUG

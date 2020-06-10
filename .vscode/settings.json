@@ -57,6 +57,7 @@
 		"fstream": "cpp",
 		"sstream": "cpp",
 		"cinttypes": "cpp",
-		"map": "cpp"
+		"map": "cpp",
+		"set": "cpp"
 	}
 }

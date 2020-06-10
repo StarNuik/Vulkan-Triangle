@@ -4,9 +4,9 @@
             "includePath": [
 				"C:/Program Files/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/include",
 				"C:/VulkanSDK/1.2.135.0/Include",
-				"C:/Projects/HelloWorld/include",
-				"C:/Projects/HelloWorld/external/glm",
-				"C:/Projects/HelloWorld/external/win32/glfw/include"
+				"C:/Projects/Vulkan-Triangle/include",
+				"C:/Projects/Vulkan-Triangle/external/glm",
+				"C:/Projects/Vulkan-Triangle/external/win32/glfw/include"
 			],
             "intelliSenseMode": "gcc-x64",
             "compilerPath": "C:/Program Files/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/g++.exe",
