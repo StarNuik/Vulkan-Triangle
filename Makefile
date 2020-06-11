@@ -44,8 +44,11 @@ ifeq ($(detected_OS),Darwin)
 	EXT += .out
 endif
 
-all: binclean $(BIN)
-	@echo "Compilation successful!"
+all: binclean debug
+	@echo "Debug build complete."
+
+release: fclean $(BIN)
+	@echo "Release build complete."
 
 -include $(DEP)
 
@@ -57,7 +60,7 @@ $(BIN): $(OBJ)
 
 debug: FLG += -D DEBUG -g
 debug: FLG += -Wall -Wextra -Werror
-debug: clean $(BIN)
+debug: $(BIN)
 
 clean:
 	@rm -f $(OBJ)
