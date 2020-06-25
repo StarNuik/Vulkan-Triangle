@@ -5,6 +5,11 @@ SRC += $(wildcard src/*.cpp)
 SRC += $(wildcard src/*/*.cpp)
 SRC += $(wildcard src/*/*/*.cpp)
 INC += -I include/ -I external/glm/
+
+SHR += $(wildcard src/Shaders/*.vert)
+SHR += $(wildcard src/Shaders/*/*.vert)
+SHR += $(wildcard src/Shaders/*.frag)
+SHR += $(wildcard src/Shaders/*/*.frag)
 # INC += $(addprefix -I ,$(wildcard includes/**))
 
 #? Additional settings
@@ -19,6 +24,8 @@ LIB +=
 #? Make variables
 OBJ = $(SRC:.cpp=.o)
 DEP = $(SRC:.cpp=.d)
+
+SPV += $(addsuffix .spv, $(SHR))
 
 #? OS settings
 #? Thank you, stackoverflow
@@ -55,7 +62,13 @@ release: fclean $(BIN)
 %.o: %.cpp
 	@g++ $(FLG) -MMD -MP -c $< -o $@ $(INC)
 
-$(BIN): $(OBJ)
+%.frag.spv: %.frag
+	@glslc $< -o $@ -Werror
+
+%.vert.spv: %.vert
+	@glslc $< -o $@ -Werror
+
+$(BIN): $(OBJ) $(SPV)
 	@g++ $(FLG) -o $(BIN)$(EXT) $(OBJ) $(LIB) $(FRM)
 
 debug: FLG += -D DEBUG -g
@@ -65,6 +78,7 @@ debug: $(BIN)
 clean:
 	@rm -f $(OBJ)
 	@rm -f $(DEP)
+	@rm -f $(SPV)
 
 fclean: clean
 	@rm -f $(BIN)

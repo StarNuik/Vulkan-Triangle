@@ -58,6 +58,11 @@
 		"sstream": "cpp",
 		"cinttypes": "cpp",
 		"map": "cpp",
-		"set": "cpp"
+		"set": "cpp",
+		"list": "cpp",
+		"unordered_set": "cpp",
+		"functional": "cpp",
+		"iterator": "cpp",
+		"iomanip": "cpp"
 	}
 }
