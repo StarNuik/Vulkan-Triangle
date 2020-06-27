@@ -15,6 +15,8 @@ namespace Settings
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	};
 
+	const uint maxFramesInFlight = 2;
+
 	#if DEBUG
 		const bool useValidationLayers = true;
 	#else
