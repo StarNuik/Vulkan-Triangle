@@ -1,4 +1,5 @@
 #include "System.hpp"
+#include "Types.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Settings
