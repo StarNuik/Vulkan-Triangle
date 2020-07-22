@@ -7,7 +7,8 @@
 #include <GLFW/glfw3.h>
 
 //!
-//!	Swap chain recreation left
+//! Swap chain recreation still left
+//! Project is broke because of Vertex Buffer creation
 //!
 
 class TriangleApp {
@@ -42,6 +43,38 @@ private:
 	std::vector<VkFence> inflightFence;
 	std::vector<VkFence> imagesInFlight;
 	uint frameIndex;
+	VkBuffer vertexBuffer;
+	VkDeviceMemory vertexBufferMemory;
+
+	struct Vertex {
+		glm::vec3 position;
+		glm::vec3 color;
+
+		static VkVertexInputBindingDescription GetBindingDescription() {
+			VkVertexInputBindingDescription bindingDescription {};
+			bindingDescription.binding = 0;
+			bindingDescription.stride = sizeof(Vertex);
+			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+			return bindingDescription;
+		}
+
+		static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions() {
+			std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions {};
+
+			attributeDescriptions[0].binding = 0;
+			attributeDescriptions[0].location = 0;
+			attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[0].offset = offsetof(Vertex, position);
+
+			attributeDescriptions[1].binding = 0;
+			attributeDescriptions[1].location = 1;
+			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+			return attributeDescriptions;
+		}
+	};
 
 	struct QueueFamilyIndices {
 		std::optional<uint> graphicsFamily;
@@ -56,6 +89,12 @@ private:
 		VkSurfaceCapabilitiesKHR capabilities;
 		std::vector<VkSurfaceFormatKHR> surfaceFormats;
 		std::vector<VkPresentModeKHR> presentModes;
+	};
+
+	const std::vector<Vertex> triangleVertices = {
+		{{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+		{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}
 	};
 
 	void InitWindow() {
@@ -76,8 +115,57 @@ private:
 		CreateGraphicsPipeline();
 		CreateFramebuffers();
 		CreateCommandPool();
+		CreateVertexBuffer();
 		CreateCommandBuffers();
 		CreateSyncObjects();
+	}
+
+	void CreateVertexBuffer() {
+		VkBufferCreateInfo bufferInfo {};
+		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferInfo.size = sizeof(Vertex) * triangleVertices.size();
+		bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		bufferInfo.flags = 0;
+
+		if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+			throw std::runtime_error("Couldn't create a vertex buffer.");
+		}
+
+		VkMemoryRequirements requirements;
+		vkGetBufferMemoryRequirements(device, vertexBuffer, &requirements);
+
+		VkMemoryAllocateInfo allocInfo {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocInfo.allocationSize = requirements.size;
+		allocInfo.memoryTypeIndex = FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
+			throw std::runtime_error("Couldn't allocate memory for a vertex buffer.");
+		}
+
+		vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+
+		void* data;
+		vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+		memcpy(data, triangleVertices.data(), sizeof(Vertex) * triangleVertices.size());
+		vkUnmapMemory(device, vertexBufferMemory);
+	}
+
+	uint FindMemoryType(uint typeFilter, VkMemoryPropertyFlags flags) {
+		VkPhysicalDeviceMemoryProperties memoryProperties;
+		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+
+		for (uint i = 0; i < memoryProperties.memoryTypeCount; i++) {
+			bool correctBit = typeFilter & (1 << i);
+			bool flagsPresent = (memoryProperties.memoryTypes[i].propertyFlags & flags) == flags;
+			if (correctBit and flagsPresent) {
+				return i;
+			}
+		}
+
+		throw std::runtime_error("Couldn't find a suitable memory type.");
+		// return 0;
 	}
 
 	void CreateSyncObjects() {
@@ -105,8 +193,6 @@ private:
 				throw std::runtime_error("Couldn't create a fence.");
 			}
 		}
-
-
 	}
 
 	void CreateCommandBuffers() {
@@ -144,7 +230,13 @@ private:
 
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-			vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+
+			VkBuffer vertexBuffers[] = { vertexBuffer };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+
+			vkCmdDraw(commandBuffers[i], triangleVertices.size(), 1, 0, 0);
+			// vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
 			vkCmdEndRenderPass(commandBuffers[i]);
 
 			if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
@@ -249,12 +341,19 @@ private:
 
 		VkPipelineShaderStageCreateInfo shaderStages[] = {vertStageInfo, fragStageInfo};
 
+		auto bindingDescription = Vertex::GetBindingDescription();
+		auto attributeDescriptions = Vertex::GetAttributeDescriptions();
+
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 0;
-		vertexInputInfo.pVertexBindingDescriptions = nullptr;
-		vertexInputInfo.vertexAttributeDescriptionCount = 0;
-		vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
+		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+		// vertexInputInfo.vertexBindingDescriptionCount = 0;
+		// vertexInputInfo.pVertexBindingDescriptions = nullptr;
+		// vertexInputInfo.vertexAttributeDescriptionCount = 0;
+		// vertexInputInfo.pVertexAttributeDescriptions = nullptr;
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo {};
 		inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -999,6 +1098,10 @@ private:
 			vkDestroyImageView(device, imageView, nullptr);
 		}
 		vkDestroySwapchainKHR(device, swapchain, nullptr);
+
+		vkDestroyBuffer(device, vertexBuffer, nullptr);
+		vkFreeMemory(device, vertexBufferMemory, nullptr);
+
 		vkDestroyDevice(device, nullptr);
 		vkDestroySurfaceKHR(instance, surface, nullptr);
 		vkDestroyInstance(instance, nullptr);
